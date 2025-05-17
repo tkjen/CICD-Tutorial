@@ -47,11 +47,11 @@ jobs: # Danh sách các công việc (jobs) sẽ chạy
 
 
  # JOB MỚI CHO RELEASE BUILD
-  build_release:
+    build_release:
     name: Build Release AAB
     runs-on: ubuntu-latest
-    needs: build_and_test # Chỉ chạy sau khi job 'build_and_test' thành công
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' # Chỉ chạy khi push lên nhánh 'main'
+    needs: build_and_test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
       - name: Checkout code
@@ -67,14 +67,14 @@ jobs: # Danh sách các công việc (jobs) sẽ chạy
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Decode Keystore # Bước giải mã keystore từ Secret
+      - name: Decode Keystore
         env:
-          KEYSTORE_BASE64_SECRET: ${{ secrets.KEYSTORE_BASE64 }} # Lấy secret từ GitHub
+          KEYSTORE_BASE64_SECRET: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           echo $KEYSTORE_BASE64_SECRET | base64 --decode > ${{ github.workspace }}/release.keystore
 
-      - name: Build Release AAB (Signed) # Build và ký AAB
-        env: # Truyền các secrets làm biến môi trường
+      - name: Build Release AAB (Signed)
+        env:
           SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           SIGNING_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -85,19 +85,26 @@ jobs: # Danh sách các công việc (jobs) sẽ chạy
             -Pandroid.injected.signing.key.alias=$SIGNING_KEY_ALIAS \
             -Pandroid.injected.signing.key.password=$SIGNING_KEY_PASSWORD
 
-      - name: Upload Release AAB Artifact # Ví dụ dòng 85
-        uses: actions/upload-artifact@v4  # Ví dụ dòng 86
-        with:                             # Ví dụ dòng 87
-          name: app-release.aab           # Ví dụ dòng 88
-          path: app/build/outputs/bundle/release/app-release.aab # Ví dụ dòng 89 (ĐÂY LÀ NƠI CÓ THỂ CÓ LỖI)
-
-      # BƯỚC MỚI: PHÂN PHỐI LÊN FIREBASE APP DISTRIBUTION
-      - name: Distribute AAB to Firebase App Distribution
-        uses: wzieba/Firebase-Distribution-Github-Action@v1.7.0 # Sử dụng action có sẵn
+      - name: Upload Release AAB Artifact
+        uses: actions/upload-artifact@v4
         with:
-          appId: ${{ secrets.FIREBASE_APP_ID }}
-          token: ${{ secrets.FIREBASE_TOKEN }}
-          groups: testers # Tên nhóm tester bạn đã tạo trên Firebase (ví dụ: "testers", "qa-team")
-                          # Hoặc danh sách email: "user1@example.com, user2@example.com"
-          file: app/build/outputs/bundle/release/app-release.aab
-          releaseNotes: "New release from GitHub Actions. Commit: ${{ github.sha }}"
+          name: app-release.aab
+          path: app/build/outputs/bundle/release/app-release.aab
+
+      # BƯỚC MỚI: Thiết lập Firebase service account key
+      - name: Setup Firebase service account key
+        run: |
+          echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}" > ${{ github.workspace }}/firebase-ci-key.json
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      # BƯỚC MỚI: Phân phối AAB lên Firebase App Distribution bằng Firebase CLI
+      - name: Distribute AAB to Firebase App Distribution
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/firebase-ci-key.json
+        run: |
+          firebase appdistribution:distribute app/build/outputs/bundle/release/app-release.aab \
+            --app ${{ secrets.FIREBASE_APP_ID }} \
+            --groups testers \
+            --release-notes "New release from GitHub Actions. Commit: ${{ github.sha }}"
