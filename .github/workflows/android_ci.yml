@@ -91,4 +91,13 @@ jobs: # Danh sách các công việc (jobs) sẽ chạy
           name: app-release.aab           # Ví dụ dòng 88
           path: app/build/outputs/bundle/release/app-release.aab # Ví dụ dòng 89 (ĐÂY LÀ NƠI CÓ THỂ CÓ LỖI)
 
-      
+      # BƯỚC MỚI: PHÂN PHỐI LÊN FIREBASE APP DISTRIBUTION
+      - name: Distribute AAB to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1.7.0 # Sử dụng action có sẵn
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          token: ${{ secrets.FIREBASE_TOKEN }}
+          groups: testers # Tên nhóm tester bạn đã tạo trên Firebase (ví dụ: "testers", "qa-team")
+                          # Hoặc danh sách email: "user1@example.com, user2@example.com"
+          file: app/build/outputs/bundle/release/app-release.aab
+          releaseNotes: "New release from GitHub Actions. Commit: ${{ github.sha }}"
