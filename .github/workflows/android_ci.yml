@@ -86,8 +86,7 @@ jobs: # Danh sách các công việc (jobs) sẽ chạy
             -Pandroid.injected.signing.key.password=$SIGNING_KEY_PASSWORD
 
       - name: Upload Release AAB Artifact
-        uses: actions/upload-artifact@v4
+         uses: actions/upload-artifact@v4
         with:
           name: app-release.aab
-          path: E:/Android/Kotlin/CICD/app/release/app-release.aab # Đường dẫn tới file AAB Release
-                                                                  # (Điều chỉnh nếu đường dẫn của bạn khác)
+          path: app/build/outputs/bundle/release/app-release.aab # SỬA THÀNH ĐƯỜNG DẪN NÀY
