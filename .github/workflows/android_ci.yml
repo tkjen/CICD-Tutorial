@@ -1,4 +1,4 @@
-name: Android CI # Tên của workflow, sẽ hiển thị trên GitHub Actions
+name: Android CI/CD with GitHub Releases
 
 on:
   push:
@@ -45,7 +45,7 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
 
   build_release:
-    name: Build Release AAB
+    name: Build Release AAB & Create GitHub Release
     runs-on: ubuntu-latest
     needs: build_and_test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -82,18 +82,26 @@ jobs:
             -Pandroid.injected.signing.key.alias=$SIGNING_KEY_ALIAS \
             -Pandroid.injected.signing.key.password=$SIGNING_KEY_PASSWORD
 
-     - name: Create GitHub Release
+      # KHÔNG CÓ UPLOAD ARTIFACT RIÊNG NỮA VÌ SẼ UPLOAD LÊN RELEASE
+      # - name: Upload Release AAB Artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: app-release.aab
+      #     path: app/build/outputs/bundle/release/app-release.aab
+
+      # ĐÂY LÀ CHỖ SỬA: `steps:` con của `build_release` thì `- name:` phải cùng cấp
+      - name: Create GitHub Release
         id: create_release # Đặt ID để có thể tham chiếu output
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token này được GitHub Actions cung cấp tự động
         with:
           tag_name: v${{ github.run_number }} # Tạo tag dựa trên số lần chạy workflow (ví dụ: v1, v2, v3)
-                                            # Hoặc bạn có thể dùng tag từ commit: ${{ github.ref }} nếu bạn push tag
+                                            # Hoặc bạn có thể dùng tag từ commit: ${{ github.ref_name }} nếu bạn push tag
           release_name: Release v${{ github.run_number }}
           body: | # Nội dung mô tả cho release, bạn có thể thêm chi tiết hơn
             New release based on commit ${{ github.sha }}
-            Branch: ${{ github.ref_name }}
+            Triggered by push to branch: ${{ github.ref_name }}
           draft: false # false: publish ngay, true: tạo bản nháp
           prerelease: false # false: release chính thức, true: bản pre-release
 
@@ -104,5 +112,6 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # Lấy URL upload từ bước tạo release
           asset_path: ./app/build/outputs/bundle/release/app-release.aab # Đường dẫn tới file AAB
+                                                                       # (Kiểm tra lại đường dẫn này trong dự án của bạn)
           asset_name: app-release-v${{ github.run_number }}.aab # Tên file trên Release
           asset_content_type: application/vnd.android.package-archive
