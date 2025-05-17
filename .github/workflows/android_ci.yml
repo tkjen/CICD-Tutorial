@@ -82,19 +82,27 @@ jobs:
             -Pandroid.injected.signing.key.alias=$SIGNING_KEY_ALIAS \
             -Pandroid.injected.signing.key.password=$SIGNING_KEY_PASSWORD
 
-      - name: Upload Release AAB Artifact # Bước này đã có
-        uses: actions/upload-artifact@v4
+     - name: Create GitHub Release
+        id: create_release # Đặt ID để có thể tham chiếu output
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token này được GitHub Actions cung cấp tự động
         with:
-          name: app-release.aab
-          path: app/build/outputs/bundle/release/app-release.aab
+          tag_name: v${{ github.run_number }} # Tạo tag dựa trên số lần chạy workflow (ví dụ: v1, v2, v3)
+                                            # Hoặc bạn có thể dùng tag từ commit: ${{ github.ref }} nếu bạn push tag
+          release_name: Release v${{ github.run_number }}
+          body: | # Nội dung mô tả cho release, bạn có thể thêm chi tiết hơn
+            New release based on commit ${{ github.sha }}
+            Branch: ${{ github.ref_name }}
+          draft: false # false: publish ngay, true: tạo bản nháp
+          prerelease: false # false: release chính thức, true: bản pre-release
 
-      # BƯỚC MỚI: PHÂN PHỐI LÊN FIREBASE APP DISTRIBUTION
-      - name: Distribute AAB to Firebase App Distribution
-        uses: wzieba/Firebase-Distribution-Github-Action@v1.7.0 # Sử dụng action có sẵn
+      - name: Upload AAB to GitHub Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          appId: ${{ secrets.FIREBASE_APP_ID }}
-          token: ${{ secrets.FIREBASE_TOKEN }}
-          groups: testers # Tên nhóm tester bạn đã tạo trên Firebase (ví dụ: "testers", "qa-team")
-                          # Hoặc danh sách email: "user1@example.com, user2@example.com"
-          file: app/build/outputs/bundle/release/app-release.aab
-          releaseNotes: "New release from GitHub Actions. Commit: ${{ github.sha }}"
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # Lấy URL upload từ bước tạo release
+          asset_path: ./app/build/outputs/bundle/release/app-release.aab # Đường dẫn tới file AAB
+          asset_name: app-release-v${{ github.run_number }}.aab # Tên file trên Release
+          asset_content_type: application/vnd.android.package-archive
