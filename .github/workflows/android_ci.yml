@@ -91,5 +91,4 @@ jobs: # Danh sách các công việc (jobs) sẽ chạy
           name: app-release.aab           # Ví dụ dòng 88
           path: app/build/outputs/bundle/release/app-release.aab # Ví dụ dòng 89 (ĐÂY LÀ NƠI CÓ THỂ CÓ LỖI)
 
-      - name: Distribute AAB to Firebase App Distribution # Ví dụ dòng 91
-        uses: wzieba/Firebase-Distribution-Github-Action@v1.7.0 # Ví dụ dòng 92
+      
