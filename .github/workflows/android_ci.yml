@@ -1,0 +1,46 @@
+name: Android CI # Tên của workflow, sẽ hiển thị trên GitHub Actions
+
+on: # Các sự kiện sẽ kích hoạt workflow
+  push: # Khi có push code
+    branches:
+      - main      # Lên nhánh main
+      - develop   # Lên nhánh develop
+  pull_request: # Khi có Pull Request
+    branches:
+      - main      # Tới nhánh main
+      - develop   # Tới nhánh develop
+
+jobs: # Danh sách các công việc (jobs) sẽ chạy
+  build_and_test: # Tên của job, bạn có thể đặt tùy ý
+    name: Build, Lint & Unit Test # Tên hiển thị của job
+    runs-on: ubuntu-latest # Chạy job này trên một máy ảo Ubuntu mới nhất
+
+    steps: # Các bước thực thi tuần tự trong job
+      - name: Checkout code # Bước 1: Lấy code từ repository về máy ảo
+        uses: actions/checkout@v4 # Sử dụng một "action" có sẵn của GitHub
+
+      - name: Set up JDK 17 # Bước 2: Cài đặt Java Development Kit
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17' # Chọn phiên bản Java phù hợp với dự án của bạn
+          distribution: 'temurin'
+          cache: gradle # Bật cache cho Gradle để build nhanh hơn ở các lần sau
+
+      - name: Grant execute permission for gradlew # Bước 3: Cấp quyền thực thi cho file gradlew
+        run: chmod +x ./gradlew
+
+      - name: Run Lint # Bước 4: Chạy Android Lint
+        run: ./gradlew lintDebug # Kiểm tra code style và các vấn đề tiềm ẩn cho build type Debug
+
+      - name: Run Unit Tests # Bước 5: Chạy Unit Tests
+        run: ./gradlew testDebugUnitTest # Chạy các bài test đơn vị cho build type Debug
+
+      - name: Build Debug APK # Bước 6: Build file APK Debug
+        run: ./gradlew assembleDebug
+
+      - name: Upload Debug APK Artifact # Bước 7: Tải lên APK làm "artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug.apk # Tên của artifact sẽ được lưu trữ
+          path: app/build/outputs/apk/debug/app-debug.apk # Đường dẫn tới file APK Debug
+                                                          # (Điều chỉnh nếu đường dẫn của bạn khác)
